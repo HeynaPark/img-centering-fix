@@ -1,18 +1,48 @@
 import cv2
 import math
 
-image_path = "image.png"
+# target_x = int(w/2)
+# target_y = int(h/2)
+target_x = 900
+target_y = 400
+
+
+def mouse_callback(event, x, y, flags, param):
+    global target_x, target_y
+    if event == cv2.EVENT_LBUTTONDOWN:
+        print(f"마우스 클릭 좌표: ({x}, {y})")
+        target_x = x
+        target_y = y
+
+
+image_path = "image.png"    # input image path here
 image = cv2.imread(image_path)
 
-h, w = image.shape[:2]
-target_x = int(w/2)
-target_y = int(h/2)
+target_win = "click target pos"
+cv2.namedWindow(target_win)
+cv2.moveWindow(target_win, 0, 0)
 
-print('target', target_x, target_y)
+image_win = "Image"
+cv2.namedWindow(image_win)
+
+
+def click_target():
+    cv2.setWindowProperty(target_win, cv2.WND_PROP_TOPMOST, 1)
+    cv2.setMouseCallback(target_win, mouse_callback)
+    cv2.imshow(target_win, image)
+
+    cv2.waitKey(0)
+    print('target', target_x, target_y)
+
+
+h, w = image.shape[:2]
 scale = 1.0
-aspect = w/h
+aspect_ratio = w/h
 sum = 0
 cnt = 0
+
+# set parameters
+max_scale = 5
 
 
 def find_optimum(w, h):
@@ -53,50 +83,80 @@ def find_optimum(w, h):
     return new_w, new_h
 
 
+#  resize test
+click_target()
+
 while True:
-    # print('scale', scale)
-    # 소수점 버리고 짝수로 변환
-    new_w = math.floor(w/scale)
-    new_h = math.floor(h/scale)
-    if new_w % 2 != 0:
-        new_w += 1
-    if new_h % 2 != 0:
-        new_h += 1
 
-    # aspect_ratio 값과 현재 바뀐 이미지 사이즈 비율간의 차이가 일정 값보다 큰 경우 최적화 진행
-    diff_ratio = new_w/new_h - aspect
-    if abs(diff_ratio) > 0.005:
-        print('diff ratio ', diff_ratio)
-        new_w, new_h = find_optimum(new_w, new_h)
+    new_w = int(w*scale)
+    new_h = int(h*scale)
 
-        diff_ratio = new_w/new_h - aspect
-        print('after diff ratio ', diff_ratio)
-        print('------------------------------')
-    sum += diff_ratio
+    crop_x = 0
+    crop_y = 0
+    crop_w = 0
+    crop_h = 0
 
-    left = target_x - int(new_w/2)
-    top = target_y - int(new_h/2)
-    wid = left + int(new_w)
-    hei = top + int(new_h)
+    if w/2 > target_x:
+        crop_w = target_x * 2
+        crop_x = 0
+    else:
+        crop_w = (w-target_x)*2
 
-    cv2.circle(image, (target_x, target_y), 5, (0, 255, 0), -1)
+    if h/2 > target_y:
+        crop_h = target_y*2
+        crop_y = 0
+    else:
+        crop_h = (h-target_y)*2
+
+    if crop_w/crop_h > aspect_ratio:
+        crop_w = int(crop_h*aspect_ratio)
+    else:
+        crop_h = int(crop_w/aspect_ratio)
+
+    crop_x = int(target_x - crop_w*0.5)
+    crop_y = int(target_y - crop_h*0.5)
+    print(crop_x, crop_y, crop_w, crop_h)
+
+    target_crop = image[crop_y:crop_y+crop_h, crop_x:crop_x+crop_w]
+    # cv2.imshow("crop", target_crop)
+    # cv2.waitKey(0)
+
+    resized = cv2.resize(target_crop, (new_w, new_h), cv2.INTER_LINEAR)
+
+    # print(new_w, new_h)
+    left = int((new_w - w)/2)
+    top = int((new_h-h)/2)
+    right = left+w
+    bottom = top+h
 
     # print('check new center ', left + new_w/2, top + new_h/2)  # 센터가 흔들리는지 확인
-    zoomed = image[top:hei, left:wid]
-    resized = cv2.resize(
-        zoomed, (image.shape[1], image.shape[0]), interpolation=cv2.INTER_CUBIC)
+
+    # print(left, top, right, bottom)
+    if new_w != w:
+        crop = resized[top:bottom, left:right]
+    else:
+        crop = resized
     # cv2.circle(image, (target_x, target_y), 3, (0, 255, 0), -1)
     # cv2.rectangle(image, (left, top), (wid, hei), (0, 200, 0), 2)
     # cv2.imshow("Image", image)
 
-    cv2.imshow("Image", resized)
+    if scale == 1.0:
+        print('check')
+        cv2.namedWindow(image_win)
+        cv2.setWindowProperty(image_win, cv2.WND_PROP_TOPMOST, 1)
 
-    cv2.waitKey(100)
+    cv2.imshow(image_win, crop)
+    cv2.waitKey(50)
 
     scale += 0.1
-    if scale > 6:
-        break
+
+    if scale > max_scale:
+        cv2.destroyWindow(image_win)
+        scale = 1.0
+        click_target()
+        # break
     cnt += 1
+
 
 cv2.destroyAllWindows()
 
