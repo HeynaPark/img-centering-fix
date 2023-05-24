@@ -42,6 +42,19 @@ Let`t check in the python opencv!
     (1920, 1080),
     (1921, 1081)
 
+
+-----------------------------
+## Test 2 : resize aspect ratio
+
+
+
+
+https://github.com/HeynaPark/resize_center_check/assets/90448406/bcf1145a-2822-4909-bca4-dd288918fec5
+
+
+
+
+
 ## Result
 - This is the result of displaying the center points of images of different sizes and resizing them to 1920 and 1080.
 
