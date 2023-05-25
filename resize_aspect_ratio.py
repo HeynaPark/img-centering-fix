@@ -45,46 +45,49 @@ cnt = 0
 max_scale = 5
 
 
-def find_optimum(w, h):
-    print('find optimun')
-    new_w = 0
-    new_h = 0
-    temp1 = 0
-    temp2 = 0
-
-    aspect_ratio = 1.77777
-    if w/h > aspect_ratio:
-        new_w = w - 2
-        new_h = h
-        temp1 = new_w/new_h
-
-        new_w = w
-        new_h = h+2
-        temp2 = new_w/new_h
-
-        if abs(temp1-aspect_ratio) < abs(temp2-aspect_ratio):
-            return w-2, h
-        else:
-            return w, h+2
-    else:
-        new_w = w+2
-        new_h = h
-        temp1 = new_w/new_h
-
-        new_w = w
-        new_h = h-2
-        temp2 = new_w/new_h
-
-        if abs(temp1-aspect_ratio) < abs(temp2-aspect_ratio):
-            return w+2, h
-        else:
-            return w, h-2
-
-    return new_w, new_h
-
-
 #  resize test
 click_target()
+
+while True:
+
+    new_w = int(w*scale)
+    new_h = int(h*scale)
+
+    resized = cv2.resize(image, (new_w, new_h), cv2.INTER_LINEAR)
+
+    left = target_x*scale - w/2
+    top = target_y*scale - h/2
+    print(left, top)
+
+    if (left + w) > new_w:
+        left = left - ((left + w) - new_w)
+    elif left < 0:
+        left = 0
+
+    if (top + h) > new_h:
+        top = top - ((top + h) - new_h)
+    elif top < 0:
+        top = 0
+
+    print(left, top)
+    crop = resized[int(top): int(top+h), int(left): int(left+w)]
+
+    if scale == 1.0:
+        cv2.namedWindow(image_win)
+        cv2.setWindowProperty(image_win, cv2.WND_PROP_TOPMOST, 1)
+
+    cv2.imshow(image_win, crop)
+    cv2.waitKey(50)
+
+    scale += 0.1
+
+    if scale > max_scale:
+        cv2.destroyWindow(image_win)
+        scale = 1.0
+        click_target()
+        # break
+    cnt += 1
+
 
 while True:
 
@@ -118,30 +121,26 @@ while True:
     print(crop_x, crop_y, crop_w, crop_h)
 
     target_crop = image[crop_y:crop_y+crop_h, crop_x:crop_x+crop_w]
-    # cv2.imshow("crop", target_crop)
-    # cv2.waitKey(0)
 
     resized = cv2.resize(target_crop, (new_w, new_h), cv2.INTER_LINEAR)
 
-    # print(new_w, new_h)
     left = int((new_w - w)/2)
     top = int((new_h-h)/2)
     right = left+w
     bottom = top+h
 
-    # print('check new center ', left + new_w/2, top + new_h/2)  # 센터가 흔들리는지 확인
-
-    # print(left, top, right, bottom)
     if new_w != w:
         crop = resized[top:bottom, left:right]
     else:
         crop = resized
-    # cv2.circle(image, (target_x, target_y), 3, (0, 255, 0), -1)
-    # cv2.rectangle(image, (left, top), (wid, hei), (0, 200, 0), 2)
-    # cv2.imshow("Image", image)
 
     if scale == 1.0:
         print('check')
+        cv2.rectangle(image, (crop_x, crop_y),
+                      (crop_w+crop_x, crop_h+crop_y), (0, 255, 0), 3)
+        cv2.imshow(target_win, image)
+        cv2.waitKey(0)
+
         cv2.namedWindow(image_win)
         cv2.setWindowProperty(image_win, cv2.WND_PROP_TOPMOST, 1)
 
@@ -157,9 +156,4 @@ while True:
         # break
     cnt += 1
 
-
 cv2.destroyAllWindows()
-
-
-mean = sum / cnt
-print('mean ', mean)
